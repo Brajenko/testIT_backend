@@ -1,7 +1,16 @@
 from collections import OrderedDict, Counter
+from typing import Optional
 
 from rest_framework.serializers import ModelSerializer, ValidationError, IntegerField
 from .models import Test, Completion
+
+
+class ParseQuestionError:
+    def __init__(self, error_text: str, qnumber: Optional[int] = None) -> None:
+        if qnumber is None:
+            raise ValidationError(error_text)
+        raise ValidationError(f"Question {qnumber}: {error_text}")
+
 
 class TestSerializer(ModelSerializer):
     class Meta:
@@ -9,16 +18,14 @@ class TestSerializer(ModelSerializer):
         fields = "__all__"
     
     def validate_content(self, content):
-        if not content:
-            raise ValidationError("This field is required.")
         if type(content) is not list:
-            raise ValidationError("This field must be list.")
-        
+            raise ParseQuestionError("This field must be list.")
         for qnumber, question in enumerate(content, 1):
             if type(question) is not dict:
-                raise ValidationError("All objects must be dictionaries.")
-            
+                raise ParseQuestionError("All objects must be dictionaries.")
             qtype = question.get("type", None)
+            if not qtype:
+                raise ParseQuestionError("Question type is not provided.", qnumber)
             title = question.get("title", None)
             description = question.get("description", None)
             variants = question.get("variants", None)
@@ -26,21 +33,21 @@ class TestSerializer(ModelSerializer):
             answers = question.get("answers", None)
             
             if not qtype:
-                raise ValidationError(f"Question {qnumber}: Question type is not provided.") 
+                raise ParseQuestionError(f"Question type is not provided.", qnumber) 
             elif qtype not in ("text", "code", "radio", "check"):
-                raise ValidationError(f"Question {qnumber}: Question type is in wrong format.")
+                raise ParseQuestionError(f"Question type is in wrong format.", qnumber)
             
             if not title:
-                raise ValidationError(f"Question {qnumber}: Question title is not provided.")
+                raise ParseQuestionError(f"Question title is not provided.", qnumber)
             elif type(title) is not str:
-                raise ValidationError(f"Question {qnumber}: Question title must be string.")
+                raise ParseQuestionError(f"Question title must be string.", qnumber)
                         
             if qtype == "text":
                 # Проверим, что варианты ответов существуют
                 if not answers or type(answers) is not list:
-                    raise ValidationError(f"Question {qnumber}: Answers (list) is required.")
+                    raise ParseQuestionError(f"Answers (list) is required.", qnumber)
                 if any(map(lambda ans: type(ans) is not str, answers)):
-                    raise ValidationError(f"Question {qnumber}: Answers must be strings.")
+                    raise ParseQuestionError(f"Answers must be strings.", qnumber)
             elif qtype == "code":
                 # Проверим, что-нибудь)))
                 # Например валидируем тесткейсы
@@ -49,16 +56,16 @@ class TestSerializer(ModelSerializer):
                 # Проверим, что есть варианты и правильные варианты,
                 # и что правильные варианты есть в обычных
                 if not answers or type(answers) is not list:
-                    raise ValidationError(f"Question {qnumber}: Answers (list) is required.")
+                    raise ParseQuestionError(f"Answers (list) is required.", qnumber)
                 if any(map(lambda ans: type(ans) is not str, answers)):
-                    raise ValidationError(f"Question {qnumber}: Answers must be strings.")
+                    raise ParseQuestionError(f"Answers must be strings.", qnumber)
                 if not variants or type(variants) is not list:
-                    raise ValidationError(f"Question {qnumber}: Variants (list) is required.")
+                    raise ParseQuestionError(f"Variants (list) is required.", qnumber)
                 if any(map(lambda var: type(var) is not str, variants)):
-                    raise ValidationError(f"Question {qnumber}: Variants must be strings.")
+                    raise ParseQuestionError(f"Variants must be strings.", qnumber)
                 for answer in answers:
                     if answer not in variants:
-                        raise ValidationError(f"Question {qnumber}: Answer '{answer}' not in variants list.")
+                        raise ParseQuestionError(f"Answer '{answer}' not in variants list.", qnumber)
             
         return content
 
@@ -71,12 +78,12 @@ class CompletionSerializer(ModelSerializer):
     def validate_content(self, content):
         # Проверим что в content нужные типы данных
         if not content:
-            raise ValidationError(f"Content is required.")
+            raise ParseQuestionError(f"Content is required.")
         if type(content) is not list:
-            raise ValidationError(f"Content must be list.")
+            raise ParseQuestionError(f"Content must be list.")
         for ans in content:
             if type(ans) is not list and type(ans) is not str and type(ans) is not int:
-                raise ValidationError(f"Wrong answers format.")
+                raise ParseQuestionError(f"Wrong answers format.")
         return content
     
     def validate(self, data: OrderedDict):
@@ -88,14 +95,14 @@ class CompletionSerializer(ModelSerializer):
             # Валидация
             if question["type"] in ("radio", "text"):
                 if type(answer) is not str and type(answer) is not list and len(answer) != 1:
-                    raise ValidationError(f"Question {qnumber}: Multiple answers for question with only one answer.")
+                    raise ParseQuestionError(f"Multiple answers for question with only one answer.", qnumber)
             if question["type"] == "radio":
                 if answer not in question["variants"]:
-                    raise ValidationError(f"Question {qnumber}: Answer not in question variants.")
+                    raise ParseQuestionError(f"Answer not in question variants.", qnumber)
             if question["type"] == "check":
                 for ans in answer:
                     if ans not in question["variants"]:
-                        raise ValidationError(f"Question {qnumber}: Answer not in question variants.")
+                        raise ParseQuestionError(f"Answer not in question variants.", qnumber)
                     
             # Подсчет очков
             if question["type"] in ("radio", "text"):
