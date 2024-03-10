@@ -1,20 +1,8 @@
-from django.shortcuts import render
 from rest_framework import viewsets
 from .models import Test, Completion
 from .serializers import TestSerializer, CompletionSerializer
 from rest_framework.exceptions import PermissionDenied
 from rest_framework import permissions
-from django.http import HttpRequest
-
-
-class IsTeacher(permissions.BasePermission):
-    """
-    Permission checks if user is teacher
-    """
-    def has_permission(self, request: HttpRequest, view):
-        if request.user.is_anonymous:
-            return False
-        return request.user.is_teacher
 
 
 class IsTestCreator(permissions.BasePermission):
@@ -38,7 +26,7 @@ class CanPassTest(permissions.BasePermission):
 
 
 class TestViewSet(viewsets.ModelViewSet):
-    permission_classes = [(IsTeacher & IsTestCreator) | CanPassTest]
+    permission_classes = [IsTestCreator | CanPassTest]
     queryset = Test.objects.all()
     serializer_class = TestSerializer
     
