@@ -113,7 +113,8 @@ class CompletionSerializer(ModelSerializer):
                 # в минус уйти нельзя max(0))
                 answers_count = len(question["answers"])
                 right_answers = list((Counter(question["answers"]) & Counter(answer)).elements())
-                score += max(10 - abs(len(right_answers) - answers_count) * 3, 0)
+                right_answers_count = len(right_answers)
+                score += round(10 * right_answers_count / answers_count)
                 
         data["score"] = score
         
