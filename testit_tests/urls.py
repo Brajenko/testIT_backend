@@ -1,12 +1,13 @@
 from django.urls import path, include
 from rest_framework import routers
-from .views import TestViewSet, CompletionViewSet
+from .views import MyTestsViewSet, TestView, CompletionViewSet
 
 
 router = routers.SimpleRouter()
-router.register(r'test', TestViewSet)
-router.register(r'completion', CompletionViewSet)
+router.register(r'tests/created', MyTestsViewSet, basename='Test')
+router.register(r'completions', CompletionViewSet, basename='Completion')
 
 urlpatterns = [
-    path('', include(router.urls))
+    path('', include(router.urls)),
+    path('tests/<int:pk>', TestView.as_view())
 ]

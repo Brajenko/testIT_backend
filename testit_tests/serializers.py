@@ -1,131 +1,282 @@
-from collections import OrderedDict, Counter
-from typing import Optional
-
 from rest_framework.serializers import ModelSerializer, ValidationError, IntegerField
-from .models import Test, Completion
+from drf_writable_nested.serializers import WritableNestedModelSerializer
+from .models import *
+
+from drf_spectacular.utils import extend_schema_serializer, OpenApiExample
 
 
-class ParseQuestionError:
-    def __init__(self, error_text: str, qnumber: Optional[int] = None) -> None:
-        if qnumber is None:
-            raise ValidationError(error_text)
-        raise ValidationError(f"Question {qnumber}: {error_text}")
+class TextQuestionSerializer(ModelSerializer):
+    class Meta:
+        model = TextQuestion
+        fields = ('id', 'title', 'description', 'number_in_test', 'answer')
 
 
-class TestSerializer(ModelSerializer):
+class RadioQuestionSerializer(ModelSerializer):
+    class Meta:
+        model = RadioQuestion
+        fields = ('id', 'title', 'description',
+                  'number_in_test', 'variants', 'answer')
+    
+    def validate(self, attrs):
+        """
+        Check if answer presented in variants
+        """
+        if attrs['answer'] not in attrs['variants']:
+            raise ValidationError(f'Answer "{attrs['answer']}" must be in variants.')
+        return super().validate(attrs)
+
+
+class CheckQuestionSerializer(ModelSerializer):
+    class Meta:
+        model = CheckQuestion
+        fields = ('id', 'title', 'description',
+                  'number_in_test', 'variants', 'answers')
+    
+    def validate(self, attrs):
+        """
+        Check if answer presented in variants
+        """
+        for answer in attrs['answers']:
+            if answer not in attrs['variants']:
+                raise ValidationError(f'Answer "{answer}" must be in variants.')
+        return super().validate(attrs)
+
+
+class CodeQuestionSerializer(ModelSerializer):
+    class Meta:
+        model = CodeQuestion
+        fields = ('id', 'title', 'description',
+                  'number_in_test', 'testing_code')
+
+
+class NoAnswerTextQuestionSerializer(TextQuestionSerializer):
+    class Meta(TextQuestionSerializer.Meta):
+        fields = ('id', 'title', 'description',
+                  'number_in_test')
+
+
+class NoAnswerRadioQuestionSerializer(RadioQuestionSerializer):
+    class Meta(RadioQuestionSerializer.Meta):
+        fields = ('id', 'title', 'description',
+                  'number_in_test', 'variants')
+
+class NoAnswerCheckQuestionSerializer(CheckQuestionSerializer):
+    class Meta(CheckQuestionSerializer.Meta):
+        fields = ('id', 'title', 'description',
+                  'number_in_test', 'variants')
+
+class NoAnswerCodeQuestionSerializer(CodeQuestionSerializer):
+    class Meta(CodeQuestionSerializer.Meta):
+        fields = ('id', 'title', 'description',
+                  'number_in_test')
+
+
+@extend_schema_serializer(
+    examples=[
+        OpenApiExample(
+            'Valid example 1',
+            summary='4 questions',
+            description='Test with 4 questions with different types',
+            value={
+                "text_questions": [
+                    {
+                        "id": 1,
+                        "title": "text question",
+                        "description": "some description",
+                        "number_in_test": 1,
+                        "answer": "answer 1"
+                    }
+                ],
+                "radio_questions": [
+                    {
+                        "id": 1,
+                        "title": "radio question",
+                        "description": "some description",
+                        "number_in_test": 2,
+                        "variants": [
+                            "variant 1",
+                            "variant 2",
+                            "variant 3",
+                            "variant 4"
+                        ],
+                        "answer": "variant 2"
+                    }
+                ],
+                "check_questions": [
+                    {
+                        "id": 1,
+                        "title": "check question",
+                        "description": "some description",
+                        "number_in_test": 3,
+                        "variants": [
+                            "variant 1",
+                            "variant 2",
+                            "variant 3",
+                            "variant 4",
+                            "variant 5",
+                            "variant 6"
+                        ],
+                        "answers": [
+                            "variant 1",
+                            "variant 3",
+                            "variant 4"
+                        ]
+                    }
+                ],
+                "code_questions": [
+                    {
+                        "id": 1,
+                        "title": "code question",
+                        "description": "some description",
+                        "number_in_test": 4,
+                        "testing_code": "print('this code works!!!')"
+                    }
+                ]
+            },
+            request_only=True,  # signal that example only applies to requests
+        ),
+        OpenApiExample(
+            'Not Valid example',
+            summary='4 questions 1 wrong',
+            description='Test with 4 questions where radio question is wrong',
+            value={
+                "text_questions": [
+                    {
+                        "title": "text question",
+                        "description": "some description",
+                        "number_in_test": 1,
+                        "answer": "answer 1"
+                    }
+                ],
+                "radio_questions": [
+                    {
+                        "title": "radio question",
+                        "description": "some description",
+                        "number_in_test": 2,
+                        "variants": [
+                            "variant 1",
+                            "variant 2",
+                            "variant 3",
+                            "variant 4"
+                        ],
+                        "answer": "variant 5"
+                    }
+                ],
+                "check_questions": [
+                    {
+                        "title": "check question",
+                        "description": "some description",
+                        "number_in_test": 3,
+                        "variants": [
+                            "variant 1",
+                            "variant 2",
+                            "variant 3",
+                            "variant 4",
+                            "variant 5",
+                            "variant 6"
+                        ],
+                        "answers": [
+                            "variant 1",
+                            "variant 3",
+                            "variant 4"
+                        ]
+                    }
+                ],
+                "code_questions": [
+                    {
+                        "title": "code question",
+                        "description": "some description",
+                        "number_in_test": 4,
+                        "testing_code": "print('this code works!!!')"
+                    }
+                ]
+            },
+            request_only=True,  # signal that example only applies to requests
+        ),
+    ]
+)
+class TestSerializer(WritableNestedModelSerializer):
+    text_questions = TextQuestionSerializer(many=True)
+    radio_questions = RadioQuestionSerializer(many=True)
+    check_questions = CheckQuestionSerializer(many=True)
+    code_questions = CodeQuestionSerializer(many=True)
+
     class Meta:
         model = Test
-        fields = "__all__"
+        fields = ['id', 'text_questions', 'radio_questions',
+                  'check_questions', 'code_questions']
+
+    def create(self, validated_data):
+        """Adds user to data before creating"""
+        user = self.context['request'].user
+        validated_data['creator'] = user
+        return super().create(validated_data)
+
+
+class NoAnswerTestSerializer(ModelSerializer):
+    text_questions = NoAnswerTextQuestionSerializer(many=True)
+    radio_questions = NoAnswerRadioQuestionSerializer(many=True)
+    check_questions = NoAnswerCheckQuestionSerializer(many=True)
+    code_questions = NoAnswerCodeQuestionSerializer(many=True)
+
+    class Meta:
+        model = Test
+        fields = ['id', 'text_questions', 'radio_questions',
+                  'check_questions', 'code_questions']
+
+class TextAnswerSerializer(ModelSerializer):
+    class Meta:     
+        model = TextAnswer
+        fields = ['id', 'answer', 'question']
+
+class RadioAnswerSerializer(ModelSerializer):
+    class Meta:     
+        model = RadioAnswer
+        fields = ['id', 'answer', 'question']
     
-    def validate_content(self, content):
-        if type(content) is not list:
-            raise ParseQuestionError("This field must be list.")
-        for qnumber, question in enumerate(content, 1):
-            if type(question) is not dict:
-                raise ParseQuestionError("All objects must be dictionaries.")
-            qtype = question.get("type", None)
-            if not qtype:
-                raise ParseQuestionError("Question type is not provided.", qnumber)
-            title = question.get("title", None)
-            description = question.get("description", None)
-            variants = question.get("variants", None)
-            test_cases = question.get("test_cases", None)
-            answers = question.get("answers", None)
-            
-            if not qtype:
-                raise ParseQuestionError(f"Question type is not provided.", qnumber) 
-            elif qtype not in ("text", "code", "radio", "check"):
-                raise ParseQuestionError(f"Question type is in wrong format.", qnumber)
-            
-            if not title:
-                raise ParseQuestionError(f"Question title is not provided.", qnumber)
-            elif type(title) is not str:
-                raise ParseQuestionError(f"Question title must be string.", qnumber)
-                        
-            if qtype == "text":
-                # Проверим, что варианты ответов существуют
-                if not answers or type(answers) is not list:
-                    raise ParseQuestionError(f"Answers (list) is required.", qnumber)
-                if any(map(lambda ans: type(ans) is not str, answers)):
-                    raise ParseQuestionError(f"Answers must be strings.", qnumber)
-            elif qtype == "code":
-                # Проверим, что-нибудь)))
-                # Например валидируем тесткейсы
-                ...
-            elif qtype in ("radio", "check"):
-                # Проверим, что есть варианты и правильные варианты,
-                # и что правильные варианты есть в обычных
-                if not answers or type(answers) is not list:
-                    raise ParseQuestionError(f"Answers (list) is required.", qnumber)
-                if any(map(lambda ans: type(ans) is not str, answers)):
-                    raise ParseQuestionError(f"Answers must be strings.", qnumber)
-                if not variants or type(variants) is not list:
-                    raise ParseQuestionError(f"Variants (list) is required.", qnumber)
-                if any(map(lambda var: type(var) is not str, variants)):
-                    raise ParseQuestionError(f"Variants must be strings.", qnumber)
-                for answer in answers:
-                    if answer not in variants:
-                        raise ParseQuestionError(f"Answer '{answer}' not in variants list.", qnumber)
-            
-        return content
+    def validate(self, attrs):
+        """
+        Check if answer presented in question variants
+        """
+        if attrs['answer'] not in attrs['question'].variants:
+            raise ValidationError(f'Answer "{attrs['answer']}" must be in variants.')
+        return super().validate(attrs)
 
+class CheckAnswerSerializer(ModelSerializer):
+    class Meta:     
+        model = CheckAnswer
+        fields = ['id', 'answers', 'question']
+    
+    def validate(self, attrs):
+        """
+        Check if answers presented in question variants
+        """
+        for answer in attrs['answers']:
+            if answer not in attrs['question'].variants:
+                raise ValidationError(f'Answer "{answer}" must be in variants.')
+        return super().validate(attrs)
+    
+class CodeAnswerSerializer(ModelSerializer):
+    class Meta:     
+        model = CodeAnswer
+        fields = ['id', 'code', 'question']
 
-class CompletionSerializer(ModelSerializer):
+class CompletionSerializer(WritableNestedModelSerializer):
+    text_answers = TextAnswerSerializer(many=True)
+    radio_answers = RadioAnswerSerializer(many=True)
+    check_answers = CheckAnswerSerializer(many=True)
+    code_answers = CodeAnswerSerializer(many=True)
+    
     class Meta:
         model = Completion
-        fields = ("__all__")
+        fields = ['id', 'test', 'text_answers', 'radio_answers', 'check_answers', 'code_answers']
     
-    def validate_content(self, content):
-        # Проверим что в content нужные типы данных
-        if not content:
-            raise ParseQuestionError(f"Content is required.")
-        if type(content) is not list:
-            raise ParseQuestionError(f"Content must be list.")
-        for ans in content:
-            if type(ans) is not list and type(ans) is not str and type(ans) is not int:
-                raise ParseQuestionError(f"Wrong answers format.")
-        return content
-    
-    def validate(self, data: OrderedDict):
-        test: Test = data["test"]
-        student = data["student"]
-        content: list = data["content"]
-        score = 0
-        for qnumber, (question, answer) in enumerate(zip(test.content, content), 1):
-            # Валидация
-            if question["type"] in ("radio", "text"):
-                if type(answer) is not str and type(answer) is not list and len(answer) != 1:
-                    raise ParseQuestionError(f"Multiple answers for question with only one answer.", qnumber)
-            if question["type"] == "radio":
-                if answer not in question["variants"]:
-                    raise ParseQuestionError(f"Answer not in question variants.", qnumber)
-            if question["type"] == "check":
-                for ans in answer:
-                    if ans not in question["variants"]:
-                        raise ParseQuestionError(f"Answer not in question variants.", qnumber)
-                    
-            # Подсчет очков
-            if question["type"] in ("radio", "text"):
-                if answer in question["answers"]:
-                    score += 10
-            elif question["type"] == "check":
-                # за каждый неправильный вариант (либо лишний, либо не отмеченный) снимаем по 3 очка,
-                # в минус уйти нельзя max(0))
-                answers_count = len(question["answers"])
-                right_answers = list((Counter(question["answers"]) & Counter(answer)).elements())
-                right_answers_count = len(right_answers)
-                score += round(10 * right_answers_count / answers_count)
-                
-        data["score"] = score
-        
-        return data
-    
-    # def create(self, validated_data):
-    #     compl = Completion()
-    #     compl.student = validated_data["student"]
-    #     compl.test = validated_data["test"]
-    #     compl.score = validated_data["score"]
-    #     compl.content = validated_data["content"]
-        
-    #     return compl
-        
+    def create(self, validated_data):
+        """Adds user to data before creating"""
+        user = self.context['request'].user
+        validated_data['student'] = user
+        return super().create(validated_data)
+
+class NoAnswersCompletionSerializer(CompletionSerializer):
+    class Meta(CompletionSerializer.Meta):
+        pass
