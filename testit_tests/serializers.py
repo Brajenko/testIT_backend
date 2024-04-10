@@ -1,4 +1,4 @@
-from rest_framework.serializers import ModelSerializer, ValidationError, IntegerField
+from rest_framework.serializers import ModelSerializer, ValidationError, SerializerMethodField
 from drf_writable_nested.serializers import WritableNestedModelSerializer
 from .models import *
 
@@ -80,7 +80,6 @@ class NoAnswerCodeQuestionSerializer(CodeQuestionSerializer):
             value={
                 "text_questions": [
                     {
-                        "id": 1,
                         "title": "text question",
                         "description": "some description",
                         "number_in_test": 1,
@@ -89,7 +88,6 @@ class NoAnswerCodeQuestionSerializer(CodeQuestionSerializer):
                 ],
                 "radio_questions": [
                     {
-                        "id": 1,
                         "title": "radio question",
                         "description": "some description",
                         "number_in_test": 2,
@@ -104,7 +102,6 @@ class NoAnswerCodeQuestionSerializer(CodeQuestionSerializer):
                 ],
                 "check_questions": [
                     {
-                        "id": 1,
                         "title": "check question",
                         "description": "some description",
                         "number_in_test": 3,
@@ -125,7 +122,6 @@ class NoAnswerCodeQuestionSerializer(CodeQuestionSerializer):
                 ],
                 "code_questions": [
                     {
-                        "id": 1,
                         "title": "code question",
                         "description": "some description",
                         "number_in_test": 4,
@@ -204,7 +200,8 @@ class TestSerializer(WritableNestedModelSerializer):
     class Meta:
         model = Test
         fields = ['id', 'text_questions', 'radio_questions',
-                  'check_questions', 'code_questions']
+                  'check_questions', 'code_questions', 'public_uuid']
+        extra_kwargs = {'public_uuid': {'read_only': True}}
 
     def create(self, validated_data):
         """Adds user to data before creating"""
@@ -221,7 +218,7 @@ class NoAnswerTestSerializer(ModelSerializer):
 
     class Meta:
         model = Test
-        fields = ['id', 'text_questions', 'radio_questions',
+        fields = ['text_questions', 'radio_questions',
                   'check_questions', 'code_questions']
 
 class TextAnswerSerializer(ModelSerializer):

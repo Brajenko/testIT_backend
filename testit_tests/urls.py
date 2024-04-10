@@ -9,5 +9,5 @@ router.register(r'completions', CompletionViewSet, basename='Completion')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('tests/<int:pk>', TestView.as_view())
+    path('tests/<uuid:public_uuid>/', TestView.as_view())
 ]

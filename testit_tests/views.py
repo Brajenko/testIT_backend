@@ -61,6 +61,7 @@ class TestView(generics.RetrieveAPIView):
     model = Test
     serializer_class = NoAnswerTestSerializer
     permission_classes = [CanPassTest]
+    lookup_field = 'public_uuid'
     queryset = Test.objects.all()
 
 

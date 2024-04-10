@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.contrib.postgres.fields import ArrayField
 from django.contrib.auth import get_user_model
@@ -46,6 +48,7 @@ class CodeQuestion(AbstractQuestion):
     
 
 class Test(models.Model):
+    public_uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     creator = models.ForeignKey(User, on_delete=models.CASCADE)
     text_questions = models.ManyToManyField(TextQuestion)
     radio_questions = models.ManyToManyField(RadioQuestion)
