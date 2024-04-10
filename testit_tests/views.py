@@ -84,3 +84,12 @@ class CompletionViewSet(mixins.CreateModelMixin,
     
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
+
+class MyTestCompletionsViewSet(mixins.ListModelMixin,
+                        mixins.CreateModelMixin,
+                        mixins.RetrieveModelMixin,
+                        mixins.DestroyModelMixin, 
+                        viewsets.GenericViewSet):
+    model = Completion
+    def get_queryset(self):
+        return Completion.objects.filter(test=self.kwargs['public_uuid'], student=self.request.user)

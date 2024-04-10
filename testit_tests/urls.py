@@ -1,13 +1,16 @@
 from django.urls import path, include
-from rest_framework import routers
-from .views import MyTestsViewSet, TestView, CompletionViewSet
+from rest_framework_nested import routers
+from .views import *
 
 
 router = routers.SimpleRouter()
 router.register(r'tests/created', MyTestsViewSet, basename='Test')
-router.register(r'completions', CompletionViewSet, basename='Completion')
+
+nested_router = routers.NestedSimpleRouter(router, r'')
+router.register(r'tests/<uuid:public_uuid>/completions', MyTestCompletionsViewSet, basename='Test complitions')
 
 urlpatterns = [
     path('', include(router.urls)),
-    path('tests/<uuid:public_uuid>/', TestView.as_view())
+    path('tests/<uuid:public_uuid>/', TestView.as_view()),
+
 ]
