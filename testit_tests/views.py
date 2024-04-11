@@ -52,8 +52,8 @@ class MyTestsViewSet(mixins.CreateModelMixin,
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
-
-class TestView(generics.RetrieveAPIView):
+class TestViewSet(mixins.RetrieveModelMixin,
+                  viewsets.GenericViewSet):
 
     """
     Get test to pass 
@@ -91,5 +91,16 @@ class MyTestCompletionsViewSet(mixins.ListModelMixin,
                         mixins.DestroyModelMixin, 
                         viewsets.GenericViewSet):
     model = Completion
+    serializer_class = CompletionSerializer
     def get_queryset(self):
-        return Completion.objects.filter(test=self.kwargs['public_uuid'], student=self.request.user)
+        return Completion.objects.filter(test__public_uuid=self.kwargs['test_public_uuid'])
+
+    @extend_schema(
+        request=CompletionSerializer,
+        # more customizations
+    )
+    def create(self, request, *args, **kwargs):
+        # test = Test.objects.get(public_uuid=self.kwargs['test_public_uuid'])
+        # self.kwargs['test'] = test
+        return super().create(request, *args, **kwargs)
+        

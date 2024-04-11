@@ -1,3 +1,4 @@
+from typing import Iterable
 import uuid
 
 from django.db import models
@@ -85,3 +86,4 @@ class Completion(models.Model):
     radio_answers = models.ManyToManyField(RadioAnswer)
     check_answers = models.ManyToManyField(CheckAnswer)
     code_answers = models.ManyToManyField(CodeAnswer)
+    score = models.FloatField()

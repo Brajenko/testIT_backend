@@ -1,4 +1,5 @@
-from rest_framework.serializers import ModelSerializer, ValidationError, SerializerMethodField
+from django.shortcuts import get_object_or_404
+from rest_framework.serializers import ModelSerializer, ValidationError, SerializerMethodField, PrimaryKeyRelatedField
 from drf_writable_nested.serializers import WritableNestedModelSerializer
 from .models import *
 
@@ -266,12 +267,17 @@ class CompletionSerializer(WritableNestedModelSerializer):
     
     class Meta:
         model = Completion
-        fields = ['id', 'test', 'text_answers', 'radio_answers', 'check_answers', 'code_answers']
+        fields = ['id', 'student', 'test', 'score', 'text_answers', 'radio_answers', 'check_answers', 'code_answers']
+        read_only_fields = ('student', 'test', 'score')
     
     def create(self, validated_data):
-        """Adds user to data before creating"""
+        """Adds user and test to data before creating"""
         user = self.context['request'].user
         validated_data['student'] = user
+        test_uuid = self.context['view'].kwargs['test_public_uuid']
+        validated_data['test'] = get_object_or_404(Test, public_uuid=test_uuid)
+        validated_data['score'] = 10
+        self.validate(validated_data)
         return super().create(validated_data)
 
 class NoAnswersCompletionSerializer(CompletionSerializer):
