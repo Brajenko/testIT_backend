@@ -1,5 +1,6 @@
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from drf_spectacular.utils import extend_schema
 
 from users.permissions import IsTeacher
 
@@ -24,3 +25,11 @@ class OrganizationView(generics.ListCreateAPIView):
         """Sets the current user as the owner of the organization."""
         serializer.save(owner=self.request.user)
         return super().perform_create(serializer)
+
+    def list(self, request, *args, **kwargs):
+        """List all organizations new user can join."""
+        return super().list(request, *args, **kwargs)
+    
+    def create(self, request, *args, **kwargs):
+        """Create new organization. This method not used in the current version."""
+        return super().create(request, *args, **kwargs)

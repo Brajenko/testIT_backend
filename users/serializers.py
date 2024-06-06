@@ -40,17 +40,13 @@ class UserSerializer(serializers.ModelSerializer):
         )
 
     def create(self, validated_data):
+        password = validated_data.pop('password')
+        validated_data['organization'] = validated_data.pop('organization_id', None)
         user = User.objects.create(
-            email=validated_data['email'],
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-            is_teacher=validated_data['is_teacher'],
+            **validated_data
         )
-        if org_id := validated_data.get('organization_id', None):
-            org = Organization.objects.get(id=org_id)
-            user.organization = org # type: ignore
 
-        user.set_password(validated_data['password'])
+        user.set_password(password)
         user.save()
         return user
 
@@ -65,3 +61,9 @@ class UserSerializer(serializers.ModelSerializer):
             else:
                 instance.organization = org
         return super().update(instance, validated_data)
+
+
+class UserWithoutOrganizationSerializer(UserSerializer):
+    class Meta(UserSerializer.Meta):
+        fields = tuple(filter(lambda f: f not in ['organization', 'organization_id'], UserSerializer.Meta.fields))
+

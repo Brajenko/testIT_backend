@@ -39,14 +39,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.admindocs',
     # packages
     'drf_spectacular',
     'corsheaders',
+    'django_extensions',
     # custom apps
     'users',
     'groups',
     'organizations',
-    'questions'
+    'questions',
+    'completions'
 ]
 
 MIDDLEWARE = [
@@ -162,7 +165,16 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': '',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    'SCHEMA_PATH_PREFIX': r'\/api\/((students)|(teachers))?',
 }
 
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = True
+
+GRAPH_MODELS = {
+  'group_models': True,
+}
+
+# xlsx export
+FILE_UPLOAD_HANDLERS = ("django_excel.ExcelMemoryFileUploadHandler",
+                        "django_excel.TemporaryExcelFileUploadHandler")
