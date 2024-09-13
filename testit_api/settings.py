@@ -13,6 +13,10 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 from pathlib import Path
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -21,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-&jnf@lg=#0hq*@!=j*z8s60_e9rjotwm_*9o-+n6d%1!0qh&)!'
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-&jnf@lg=#0hq*@!=j*z8s60_e9rjotwm_*9o-+n6d%1!0qh&)!')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -90,11 +94,11 @@ WSGI_APPLICATION = 'testit_api.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'newtestit',
-        'USER': 'admin',
-        'PASSWORD': 'admin',
-        'HOST': 'localhost',
-        'PORT': '',
+        'NAME': os.environ.get('POSTGRES_NAME', 'testit'),
+        'USER': os.environ.get('POSTGRES_USER', 'testit'),
+        'PASSWORD': os.environ.get('POSTGRES_PASSWORD', 'testit'),
+        'HOST': os.environ.get('POSTGRES_HOST', 'localhost'),
+        'PORT': os.environ.get('POSTGRES_PORT', '5432'),
     }
 }
 
@@ -134,6 +138,8 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
